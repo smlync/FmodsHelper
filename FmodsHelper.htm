@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Font Face Custom Descriptors Helper</title>	
+	<link id="fontLink" rel="stylesheet preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700,600&display=swap" as="style" onload="this.onload=null; this.rel='stylesheet'" onerror="this.onerror=null; this.rel='stylesheet'" crossorigin />
+    
+    <style>         
+    #sampleTextContainer{
+        width: 300px;
+        position: relative;
+        margin: 20px;
+    }
+    #overlaySampleText{
+        width: 100%;
+        height: 100%;            
+        position: absolute;
+        margin: 0;
+        z-index: 2;
+        opacity: 0.8;        
+    }
+    #baseSampleText{
+        color: red;
+    }
+    .txtFull { width: 95%; }
+    .txtNum { width: 10%; }
+    #frmFont div { margin-top: 8px; }
+    </style>
+
+</head>
+<body>
+    <h1>Font Face Custom Descriptor Dev Helper</h1>
+    <p>This tool is intended to help match up the font descriptor for your fallback font to your primary font to minimize the Content Layout Shift (CLS). The paragraph below is the text for comparison, use the form below it to enter your fonts and adjust the CSS descriptors.</p>
+    <div id="sampleTextContainer">
+        <p id="overlaySampleText">
+            Bilged on her anchor Jack Ketch Arr galleon heave to pink sloop haul wind Sink me weigh anchor. Scallywag ye rutters matey pirate starboard ahoy aft mutiny American Main. Mizzen hail-shot fire in the hole clap of thunder run a shot across the bow crimp jolly boat lateen sail galleon haul wind.
+        </p>
+        <p id="baseSampleText">
+            Bilged on her anchor Jack Ketch Arr galleon heave to pink sloop haul wind Sink me weigh anchor. Scallywag ye rutters matey pirate starboard ahoy aft mutiny American Main. Mizzen hail-shot fire in the hole clap of thunder run a shot across the bow crimp jolly boat lateen sail galleon haul wind.
+        </p>
+    </div>
+    <form id="frmFont">    
+        <div>
+            <label for="txtBaseFont">Base font (red):</label><br/>
+            <input id="txtBaseFont" value="Open Sans" class="txtFull" />
+        </div>
+        <div>
+            <label for="txtBaseFontUrl">Base Google Font URL:</label><br/>
+            <input id="txtBaseFontUrl" value="https://fonts.googleapis.com/css?family=Open+Sans:400,700,600&display=swap" class="txtFull" />
+        </div>
+        <div>
+            <label for="txtOverlayFont">Overlay font (black):</label><br/>
+            <input id="txtOverlayFont" value="Tahoma" class="txtFull" />
+        </div>
+        <div>
+            <label for="txtAscent">Overlay ascent-override:</label><br/>
+            <input id="txtAscent" type="number" value="75" min="0" max="100" class="txtNum" />%
+        </div>
+        <div>
+            <label for="txtDescent">Overlay descent-override:</label><br/>
+            <input id="txtDescent" type="number" value="25" min="0" max="100" class="txtNum" />%
+        </div>
+        <div>
+            <label for="txtLineGap">Overlay line-gap-override:</label><br/>
+            <input id="txtLineGap" type="number" value="0" min="0" max="100" class="txtNum" />%
+        </div>
+        <div>
+            <label for="txtLetterSpacing">Overlay letter spacing:</label><br/>
+            <input id="txtLetterSpacing" class="txtFull" value="normal" />
+        </div>
+    </form>
+    <script>
+        let fontTester = function(){
+            var baseFontEl, baseFontUrlEl, baseFont, baseFontUrl, overlayFontEl, ascentEl, descentEl, lineGapEl, letterSpacingEl, baseTextEl, overlayTextEl, fontLinkEl,
+            
+            init = function(){
+                baseFontEl = document.getElementById('txtBaseFont');
+                baseFontUrlEl = document.getElementById('txtBaseFontUrl');
+                overlayFontEl = document.getElementById('txtOverlayFont');
+                ascentEl = document.getElementById('txtAscent');
+                descentEl = document.getElementById('txtDescent');
+                lineGapEl = document.getElementById('txtLineGap');
+                letterSpacingEl = document.getElementById('txtLetterSpacing');
+                baseTextEl = document.getElementById('baseSampleText');
+                overlayTextEl = document.getElementById('overlaySampleText');
+                fontLinkEl = document.getElementById('fontLink');
+                loadBaseFont();
+                updateFont();
+                let inputs = document.querySelectorAll('#frmFont input');
+                for (let i = 0; i < inputs.length; i++) {
+                    inputs[i].addEventListener("input", updateFont);
+                } 
+            },
+            loadBaseFont = function(){
+                // Make sure both the URL and face name have been updated before applying
+                if(baseFontUrl != baseFontUrlEl.value && baseFont != baseFontEl.value){
+                    baseFontUrl = baseFontUrlEl.value;
+                    baseFont = baseFontEl.value;
+                    // Can't use FontFace here because it doesn't work with Google fonts. They deliver the CSS with @font-face in it.
+                    fontLinkEl.href = baseFontUrl;
+                    baseTextEl.style.fontFamily = baseFont;
+                }
+            },
+            updateFont = function(){
+                loadBaseFont();
+
+                let overlayFont = overlayFontEl.value;
+                let ascentVal = ascentEl.value;
+                let descentVal = descentEl.value;
+                let lineGap = lineGapEl.value;
+                let letterSpacing = letterSpacingEl.value;
+                overlayTextEl.style.letterSpacing = letterSpacing;
+
+                // Block below doesn't work with Google fonts. Have to use the FontFace API here as the font descriptors are only available there.
+                var overlayFontFace = new FontFace(overlayFont, `local(${overlayFont})`);
+                overlayFontFace.load().then(function(loaded_face) {
+                    loaded_face.ascentOverride = ascentVal + '%';
+                    loaded_face.descentOverride = descentVal + '%';
+                    loaded_face.lineGapOverride = lineGap + '%';
+                    document.fonts.add(loaded_face);
+                    overlayTextEl.style.fontFamily = overlayFont;
+                }).catch(function(error) {
+                    // error occurred, user likely still typing
+                });
+                
+            };
+            return {
+                Init: init
+            };
+        };
+        (function(){
+            var loadFonts = new fontTester();
+            loadFonts.Init();
+        })();
+    </script>
+</body>
+</html>
